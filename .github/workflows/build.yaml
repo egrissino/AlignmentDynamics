@@ -1,0 +1,25 @@
+name: Octave Syntax Check
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**.m'
+      - '.github/workflows/octave-syntax-check.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**.m'
+
+jobs:
+  syntax-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Octave
+      run: sudo apt-get update && sudo apt-get install -y octave
+
+    - name: Check gen_security_sim.m syntax
+      run: octave --quiet --eval "try; source('gen_security_sim.m'); disp('Syntax check passed'); catch e; disp('Syntax error:'); disp(e.message); exit(1); end_try_catch; exit(0);"
