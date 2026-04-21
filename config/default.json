@@ -1,0 +1,13 @@
+{
+  "T": 1000,
+  "N": 4096,
+  "eta": 0.07,
+  "beta": 0.1,
+  "noise_init": 0.2,
+  "noise_decay_rate": 0.01,
+  "k": 0.02,
+  "gamma": 0.02,
+  "S0": 0.1,
+  "seed": 42,
+  "out_dir": "out/default"
+}
