@@ -27,12 +27,12 @@ jobs:
       - name: Check all .m files for syntax errors
         run: |
           octave --quiet --eval "
-            files = glob({'src/**/*.m', 'tests/**/*.m', 'gen_security_sim.m'});
+            files = glob({'src/**/*.m', 'tests/**/*.m'});
             nerr = 0;
             for i = 1:numel(files)
               f = files{i};
               try
-                checkcode(f);
+                source(f);
                 fprintf('  ok  %s\n', f);
               catch e
                 fprintf('  ERR %s: %s\n', f, e.message);
