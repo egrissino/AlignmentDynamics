@@ -1,25 +1,98 @@
-name: Octave Syntax Check
+name: CI
 
 on:
   push:
     branches: [ main ]
     paths:
       - '**.m'
-      - '.github/workflows/octave-syntax-check.yml'
+      - 'config/**.json'
+      - '.github/workflows/build.yaml'
   pull_request:
     branches: [ main ]
     paths:
       - '**.m'
+      - 'config/**.json'
+      - '.github/workflows/build.yaml'
 
 jobs:
   syntax-check:
+    name: Syntax Check
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install Octave
-      run: sudo apt-get update && sudo apt-get install -y octave
+      - name: Install Octave
+        run: sudo apt-get update && sudo apt-get install -y octave
 
-    - name: Check gen_security_sim.m syntax
-      run: octave --quiet --eval "try; source('gen_security_sim.m'); disp('Syntax check passed'); catch e; disp('Syntax error:'); disp(e.message); exit(1); end_try_catch; exit(0);"
+      - name: Check all .m files for syntax errors
+        run: |
+          octave --quiet --eval "
+            files = glob({'src/**/*.m', 'tests/**/*.m'});
+            nerr = 0;
+            for i = 1:numel(files)
+              f = files{i};
+              try
+                source(f);
+                fprintf('  ok  %s\n', f);
+              catch e
+                fprintf('  ERR %s: %s\n', f, e.message);
+                nerr++;
+              end
+            end
+            if nerr > 0
+              fprintf('%d file(s) failed syntax check\n', nerr);
+              exit(1);
+            end
+            disp('All files passed syntax check.');
+          "
+
+  smoke-test:
+    name: Smoke Test (T=50)
+    runs-on: ubuntu-latest
+    needs: syntax-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Octave
+        run: sudo apt-get update && sudo apt-get install -y octave
+
+      - name: Write smoke-test config
+        run: |
+          cat > /tmp/smoke.json <<'EOF'
+          {
+            "T": 50,
+            "N": 64,
+            "eta": 0.07,
+            "beta": 0.1,
+            "noise_init": 0.2,
+            "noise_decay_rate": 0.01,
+            "k": 0.02,
+            "gamma": 0.02,
+            "S0": 0.1,
+            "seed": 42,
+            "out_dir": "/tmp/smoke_out"
+          }
+          EOF
+
+      - name: Run simulation end-to-end
+        run: octave --quiet --path src gen_security_sim.m /tmp/smoke.json
+
+      - name: Verify output files exist
+        run: |
+          for f in Growth Entropy Trajectory Evolution Phase3D Vector Poincare; do
+            test -f "/tmp/smoke_out/${f}.png" || { echo "Missing: ${f}.png"; exit 1; }
+          done
+          echo "All output files present."
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: syntax-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Octave
+        run: sudo apt-get update && sudo apt-get install -y octave
+
+      - name: Run test suite
+        run: octave --quiet --path src tests/test_runner.m

@@ -246,10 +246,25 @@
 % (visualization). This separation enables independent testing of each
 % component and facilitates extension without modifying the core dynamics.
 %
+% Parameters are loaded from a JSON configuration file. A path to the
+% config file may be supplied as the first command-line argument when
+% running non-interactively:
+%
+%   octave gen_security_sim.m config/high_noise.json
+%
+% If no argument is supplied, |config/default.json| is used.
+%
 clear;
 clc;
 close all;
 addpath(genpath('src'));
+
+args = argv();
+if numel(args) >= 1
+  cfg_path = args{1};
+else
+  cfg_path = 'config/default.json';
+end
 
 %% 6. Simulation Parameters
 %
@@ -311,17 +326,11 @@ addpath(genpath('src'));
 % * |seed = 42|: Random seed for reproducibility. All stochastic elements
 %   (initial $U(0)$ and mutation noise $\xi(t)$) are drawn from this seed.
 %
-params.T               = 1000;
-params.N               = 4096;
-params.eta             = 0.07;
-params.beta            = 0.1;
-params.noise_init      = 0.2;
-params.noise_decay_rate = 0.01;
-params.k               = 0.02;
-params.gamma           = 0.02;
-params.S0              = 0.1;
-params.seed            = 42;
-params.out_dir         = 'out';
+% Default values for all parameters are defined in |config/default.json|.
+% Preset configurations for common scenarios are provided in
+% |config/high_security.json| and |config/high_noise.json|.
+%
+params = load_config(cfg_path);
 
 %% 7. Initial Conditions
 %
